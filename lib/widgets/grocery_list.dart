@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:shopping_list2/data/dummy_data.dart';
 import 'package:shopping_list2/widgets/new_item.dart';
+import 'package:shopping_list2/models/grocery_item.dart';
 
 class GroceryList extends StatefulWidget {
   const GroceryList({super.key});
@@ -13,10 +14,22 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   final _groceryItems = dummyGroceryItems;
 
-  void _addItem() {
-    Navigator.of(context).push(
+  void _addItem() async {
+    final newItem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(builder: (ctx) => const NewItem()),
     );
+
+    if (newItem == null) return;
+
+    setState(() {
+      _groceryItems.add(newItem);
+    });
+  }
+
+  void _removeItem(GroceryItem item) {
+    setState(() {
+      _groceryItems.remove(item);
+    });
   }
 
   @override
@@ -28,14 +41,21 @@ class _GroceryListState extends State<GroceryList> {
     if (_groceryItems.isNotEmpty) {
       content = ListView.builder(
         itemCount: _groceryItems.length,
-        itemBuilder: (ctx, index) => ListTile(
-          leading: Container(
-            width: 24,
-            height: 24,
-            color: _groceryItems[index].category.color,
+        itemBuilder: (ctx, index) => Dismissible(
+          key: ValueKey(_groceryItems[index].id),
+          background: Container(
+            color: Colors.red[300],
           ),
-          title: Text(_groceryItems[index].name),
-          trailing: Text(_groceryItems[index].quantity.toString()),
+          onDismissed: (direction) => _removeItem(_groceryItems[index]),
+          child: ListTile(
+            leading: Container(
+              width: 24,
+              height: 24,
+              color: _groceryItems[index].category.color,
+            ),
+            title: Text(_groceryItems[index].name),
+            trailing: Text(_groceryItems[index].quantity.toString()),
+          ),
         ),
       );
     }
