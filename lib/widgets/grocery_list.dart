@@ -35,14 +35,18 @@ class _GroceryListState extends State<GroceryList> {
 
       if (response.statusCode >= 400) {
         setState(() {
+          _isLoading = false;
           _error = 'Failed to load items. Please try again later';
         });
+        return;
       }
 
+      // No items added yet (or no current items in the database)
       if (response.body == 'null') {
         setState(() {
           _isLoading = false;
         });
+        return;
       }
 
       final Map<String, dynamic> listData = json.decode(response.body);
@@ -83,10 +87,40 @@ class _GroceryListState extends State<GroceryList> {
     });
   }
 
-  void _removeItem(GroceryItem item) {
+  void _removeItem(GroceryItem item) async {
+    final itemIndex = _groceryItems.indexOf(item);
     setState(() {
       _groceryItems.remove(item);
     });
+
+    try {
+      final url = Uri.https('flutter-prep-20574-default-rtdb.firebaseio.com',
+          'shopping-list-2/${item.id}.json');
+
+      final response = await http.delete(url);
+
+      if (response.statusCode >= 400) {
+        _showSnackBarError('Failed to delete grocery. Please try again later.');
+        setState(() {
+          _groceryItems.insert(itemIndex, item);
+        });
+      }
+    } catch (error) {
+      _showSnackBarError('Failed to delete grocery. Please try again later.');
+      setState(() {
+        _groceryItems.insert(itemIndex, item);
+      });
+    }
+  }
+
+  void _showSnackBarError(String errorMessage) {
+    if (!context.mounted) return;
+
+    final sMessenger = ScaffoldMessenger.of(context);
+    sMessenger.clearSnackBars();
+    sMessenger.showSnackBar(
+      SnackBar(content: Text(errorMessage)),
+    );
   }
 
   @override
